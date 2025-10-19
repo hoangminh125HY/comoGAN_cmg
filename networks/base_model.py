@@ -111,4 +111,3 @@ class BaseModel(pl.LightningModule):
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
-

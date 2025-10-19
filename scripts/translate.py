@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # coding: utf-8
 
@@ -20,34 +19,27 @@ sys.path.append(p_mod.replace("/scripts", ""))
 from data.base_dataset import get_transform
 from networks import create_model
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-
+device='cuda' if torch.cuda.is_available() else 'cpu'
 def printProgressBar(i, max, postText):
-    n_bar = 20
+    n_bar = 20 # size of progress bar
     j = i / max
     sys.stdout.write('\r')
     sys.stdout.write(f"[{'=' * int(n_bar * j):{n_bar}s}] {int(100 * j)}%  {postText}")
     sys.stdout.flush()
-
-
-from torch.cuda.amp import autocast
 
 def inference(model, opt, A_path, phi):
     t_phi = torch.tensor(phi)
     A_img = Image.open(A_path).convert('RGB')
     A = get_transform(opt, convert=False)(A_img)
     img_real = (((ToTensor()(A)) * 2) - 1).unsqueeze(0)
-
-    with torch.no_grad(), autocast():
-        img_fake = model.forward(img_real.to(device), t_phi.to(device))
+    img_fake = model.forward(img_real.to(device), t_phi.to(device))
 
     return ToPILImage()((img_fake[0].cpu() + 1) / 2)
 
 def main(cmdline):
     # ---- Đường dẫn trực tiếp đến hparams.yaml và checkpoint ----
-    hparams_path = "/kaggle/input/logs-pretrains/hparams.yaml"
-    checkpoint_path = "/kaggle/input/logs-pretrains/iter_000000.pth"
+    hparams_path = "/content/CoMoGAN_Modified/logs/remain-low-lot-door/checkpoints/lightning_logs/version_0/hparams.yaml"
+    checkpoint_path = "/content/CoMoGAN_Modified/logs/pretrained/tensorboard/default/version_0/checkpoints/iter_000000.pth"
 
     print(f"Loading hparams from {hparams_path}")
     print(f"Loading checkpoint from {checkpoint_path}")
@@ -77,30 +69,21 @@ def main(cmdline):
     i = 0
     for path_img in sequence_name:
         printProgressBar(i, len(sequence_name), path_img)
-        phi = cmdline.phi  # dùng tham số từ command line
-        out_img = inference(model, opt, os.path.join(cmdline.load_path, path_img), phi)
-        save_path = os.path.join(
-            cmdline.save_path,
-            f"{os.path.splitext(os.path.basename(path_img))[0]}_phi_{phi:.1f}.png"
-        )
-        out_img.save(save_path)
-        # ✅ Giải phóng bộ nhớ để tránh dồn VRAM
-        del out_img
-        torch.cuda.empty_cache()
-
+        # Loop over phi values from 0 to 2pi with increments of 0.2
+        for phi in torch.arange(0, 2 * pi, 0.2):
+            # Forward our image into the model with the specified ɸ
+            out_img = inference(model, opt, os.path.join(cmdline.load_path, path_img), phi)
+            # Saving the generated image with phi in the filename
+            save_path = os.path.join(cmdline.save_path, f"{os.path.splitext(os.path.basename(path_img))[0]}_phi_{phi:.1f}.png")
+            out_img.save(save_path)
         i += 1
 
 if __name__ == '__main__':
     ap = AP()
-    ap.add_argument('--load_path', default='/datasets/waymo_comogan/val/sunny/Day/', type=str,
-                    help='Path to load the dataset to translate')
-    ap.add_argument('--save_path', default='/CoMoGan/images/', type=str,
-                    help='Path to save the dataset')
-    ap.add_argument('--sequence', default=None, type=str,
-                    help='Only process images containing this string')
-    ap.add_argument('--phi', default=0.0, type=float,
-                    help='Angle of the sun φ between [0,2π]')
+    ap.add_argument('--load_path', default='/datasets/waymo_comogan/val/sunny/Day/', type=str, help='Set a path to load the dataset to translate')
+    ap.add_argument('--save_path', default='/CoMoGan/images/', type=str, help='Set a path to save the dataset')
+    ap.add_argument('--sequence', default=None, type=str, help='Set a sequence, will only use the image that contained the string specified')
+    ap.add_argument('--checkpoint', default=None, type=str, help='Set a path to the checkpoint that you want to use')
+    ap.add_argument('--phi', default=0.0, type=float, help='Choose the angle of the sun 𝜙 between [0,2𝜋], which maps to a sun elevation ∈ [+30◦,−40◦]')
     main(ap.parse_args())
     print("\n")
-
-

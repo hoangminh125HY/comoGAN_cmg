@@ -152,4 +152,3 @@ def __print_size_warning(ow, oh, w, h):
             f"whose sizes are not multiples of 4"
         )
         __print_size_warning.has_printed = True
-
