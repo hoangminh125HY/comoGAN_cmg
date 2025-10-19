@@ -61,7 +61,7 @@ class Day2TimelapseDataset(BaseDataset):
         self.transform_A = get_transform(self.opt, grayscale=(opt.input_nc == 1), convert=False)
         self.transform_B = get_transform(self.opt, grayscale=(opt.output_nc == 1), convert=False)
 
-        self.__tonemapping = torch.tensor(np.loadtxt('/kaggle/working/ComoGAN_111/data/daytime_model_lut.csv', delimiter=','),
+        self.__tonemapping = torch.tensor(np.loadtxt('/kaggle/working/comoGAN_cmg/data/daytime_model_lut.csv', delimiter=','),
                                    dtype=torch.float32)
 
         self.__xyz_matrix = torch.tensor([[0.5149,   0.3244,   0.1607],
