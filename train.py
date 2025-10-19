@@ -9,8 +9,10 @@ from argparse import ArgumentParser as AP
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
 from util.callbacks import LogAndCheckpointEveryNSteps
 from human_id import generate_id
+import torch
 
 
 def start(cmdline):
@@ -26,17 +28,38 @@ def start(cmdline):
     # --- Logger & Callback ---
     callbacks = []
     logger = None
+
     if not cmdline.debug:
         root_dir = os.path.join('logs/', generate_id()) if cmdline.id is None else os.path.join('logs/', cmdline.id)
         logger = TensorBoardLogger(save_dir=os.path.join(root_dir, 'tensorboard'))
         logger.log_hyperparams(opt)
-        callbacks.append(
+
+        # ✅ Callback tự lưu checkpoint tốt nhất và mới nhất
+        checkpoint_best = ModelCheckpoint(
+            dirpath=os.path.join(root_dir, 'checkpoints'),
+            filename="best_model",
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            verbose=True
+        )
+
+        checkpoint_last = ModelCheckpoint(
+            dirpath=os.path.join(root_dir, 'checkpoints'),
+            filename="last_model",
+            save_last=True,
+            verbose=True
+        )
+
+        callbacks.extend([
+            checkpoint_best,
+            checkpoint_last,
             LogAndCheckpointEveryNSteps(
                 save_step_frequency=opt.save_latest_freq,
                 viz_frequency=opt.display_freq,
                 log_frequency=opt.print_freq,
             )
-        )
+        ])
     else:
         root_dir = os.path.join('/tmp', generate_id())
 
@@ -73,6 +96,11 @@ def start(cmdline):
 
     # --- Train ---
     trainer.fit(model, dataset)
+
+    # --- ✅ Lưu model sang .pth sau khi train ---
+    final_pth_path = os.path.join(root_dir, 'checkpoints', 'final_model.pth')
+    torch.save(model.state_dict(), final_pth_path)
+    print(f"✅ Đã lưu trọng số PyTorch tại: {final_pth_path}")
 
 
 if __name__ == '__main__':
