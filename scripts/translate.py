@@ -39,7 +39,7 @@ def inference(model, opt, A_path, phi):
 def main(cmdline):
     # ---- Đường dẫn trực tiếp đến hparams.yaml và checkpoint ----
     hparams_path = "/content/CoMoGAN_Modified/logs/remain-low-lot-door/checkpoints/lightning_logs/version_0/hparams.yaml"
-    checkpoint_path = "/content/CoMoGAN_Modified/logs/pretrained/tensorboard/default/version_0/checkpoints/iter_000000.pth"
+    checkpoint_path = "/kaggle/input/ckp-cmg/checkpoints/last_model.ckpt"
 
     print(f"Loading hparams from {hparams_path}")
     print(f"Loading checkpoint from {checkpoint_path}")
